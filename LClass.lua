@@ -9,13 +9,20 @@ local aClassMeta =
     __call = function(aClass)
         local aInstance = {}
         setmetatable(aInstance, aClass)
+
         return aInstance
+    end,
+
+    __newindex = function(aClass, key, value)
+        rawset(aClass, key, value)
     end,
 }
 local function _createClass(name, super)
     local aClass = {}
-    setmetatable(aClass, aClassMeta)
+    aClass.__index = aClass
     aClass.name = name
+
+    setmetatable(aClass, aClassMeta)
 
     return aClass
 end
