@@ -5,6 +5,12 @@ local aClassMeta =
     __tostring = function(aClass)
         return "CLASS: " .. aClass.name
     end,
+
+    __call = function(aClass)
+        local aInstance = {}
+        setmetatable(aInstance, aClass)
+        return aInstance
+    end,
 }
 local function _createClass(name, super)
     local aClass = {}
