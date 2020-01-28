@@ -16,11 +16,21 @@ local aClassMeta =
     __newindex = function(aClass, key, value)
         rawset(aClass, key, value)
     end,
+
+    __index = function(aClass, key)
+        if rawget(aClass, key) then
+            return rawget(aClass, key)
+        else
+            return aClass.super and rawget(aClass.super, key) or nil
+        end
+    end,
 }
 local function _createClass(name, super)
     local aClass = {}
     aClass.__index = aClass
+    aClass.__tostring = function(self) return "Instance of class " .. name end
     aClass.name = name
+    aClass.super = super
 
     setmetatable(aClass, aClassMeta)
 
