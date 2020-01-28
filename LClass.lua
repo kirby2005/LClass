@@ -21,7 +21,13 @@ local aClassMeta =
         if rawget(aClass, key) then
             return rawget(aClass, key)
         else
-            return aClass.super and rawget(aClass.super, key) or nil
+            local super = rawget(aClass, "super")
+            while super do
+                if rawget(super, key) then
+                    return rawget(super, key)
+                end
+                super = super.super
+            end
         end
     end,
 }
