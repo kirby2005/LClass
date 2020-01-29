@@ -2,10 +2,6 @@ local LClass = {}
 
 local aClassMeta =
 {
-    __tostring = function(aClass)
-        return "CLASS: " .. aClass.name
-    end,
-
     __call = function(aClass)
         local aInstance = {}
         setmetatable(aInstance, aClass)
@@ -31,10 +27,27 @@ local aClassMeta =
         end
     end,
 }
+
+aClassMeta.__tostring = function(aClass)
+    local temp = aClassMeta.__tostring
+    aClassMeta.__tostring = nil
+    local addr = tostring(aClass)
+    aClassMeta.__tostring = temp
+
+    return "CLASS: " .. aClass.name .. " " .. addr
+end
+
+
 local function _createClass(name, super)
     local aClass = {}
     aClass.__index = aClass
-    aClass.__tostring = function(self) return "Instance of class " .. name end
+    aClass.__tostring = function(self)
+        local temp = aClass.__tostring
+        aClass.__tostring = nil
+        local addr = tostring(self)
+        aClass.__tostring = temp
+        return "Instance of class " .. name .. " " .. addr
+    end
     aClass.name = name
     aClass.super = super
 
