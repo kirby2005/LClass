@@ -48,8 +48,13 @@ local function _createClass(name, super)
         aClass.__tostring = temp
         return "Instance of class " .. name .. " " .. addr
     end
+
     aClass.name = name
-    aClass.super = super
+    if super then
+        aClass.super = super
+    else
+        aClass.static = {}  -- static can be inherited
+    end
 
     setmetatable(aClass, aClassMeta)
 
