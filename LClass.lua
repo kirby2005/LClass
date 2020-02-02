@@ -50,10 +50,11 @@ local function _createClass(name, super)
     end
 
     aClass.name = name
+    aClass.static = {}  -- static can be inherited
+    aClass.static.__index = aClass.static
     if super then
         aClass.super = super
-    else
-        aClass.static = {}  -- static can be inherited
+        setmetatable(aClass.static, super.static)
     end
 
     setmetatable(aClass, aClassMeta)

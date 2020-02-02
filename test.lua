@@ -38,3 +38,8 @@ print("static variable C2.static.sa: ", C2.static.sa)
 C2.static.s2a = 300
 print("static variable C1.static.s2a: ", C1.static.s2a)
 print("static variable C2.static.s2a: ", C2.static.s2a)
+
+print("static variable C3.static.sa: ", C3.static.sa)
+print("static variable C3.static.sa: ", C3.static.sa)
+print("static variable C3.static.s2a: ", C3.static.s2a)
+print("static variable C3.static.s2a: ", C3.static.s2a)
