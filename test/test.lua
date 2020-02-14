@@ -1,6 +1,7 @@
 local test_files =
 {
-    "test_misc",
+    -- "test_misc",
+    "test_field",
     "test_static",
 }
 

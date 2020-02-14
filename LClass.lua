@@ -1,4 +1,5 @@
 local LClass = {}
+local checkType = true
 
 local aClassMeta =
 {
@@ -50,6 +51,31 @@ local function _createClass(name, super)
     end
 
     aClass.name = name
+    aClass.field =
+    {
+        number =
+        {
+            __newindex = function(self, key, value)
+                if checkType then
+                    if type(value) ~= "number" then
+                        error("field value is no number", key, value, 1)
+                    end
+                end
+                rawset(self, key, value)
+            end
+        },
+        string = {},
+        table = {},
+        userdata = {},
+        ["function"] = {},
+
+        __call = function(self, param1)
+            return self[param1]
+        end,
+    }
+    setmetatable(aClass.field.number, aClass.field.number)
+    setmetatable(aClass.field, aClass.field)
+
     aClass.static = {}  -- static can be inherited
     aClass.static.__index = aClass.static
     if super then
