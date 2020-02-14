@@ -5,12 +5,37 @@ local aClassMeta =
 {
     __call = function(aClass)
         local aInstance = {}
-        setmetatable(aInstance, aClass)
+        local instanceMeta =
+        {
+            __index = function(instance, key)
+                local fieldMeta = aClass.field[key]
+                if not fieldMeta then
+                    error(string.format("Instance field not found when access, field: %s", key), 1)
+                end
+
+                return rawget(instance, key) or fieldMeta.defaultValue
+            end,
+
+            __newindex = function(instance, key, value)
+                local fieldMeta = aClass.field[key]
+                if not fieldMeta then
+                    error(string.format("Instance field not found when assignment, field: %s", key), 1)
+                end
+
+                if checkType and fieldMeta.type ~= type(value) then
+                    error(string.format("Instance field type mismatch, need: %s, assignment: %,", fieldMeta.type, type(value)), 1)
+                end
+
+                rawset(instance, key, value)
+            end,
+        }
+        setmetatable(aInstance, instanceMeta)
 
         return aInstance
     end,
 
     __newindex = function(aClass, key, value)
+        -- TO DO: key check(field, static, etc.)
         rawset(aClass, key, value)
     end,
 
@@ -51,29 +76,47 @@ local function _createClass(name, super)
     end
 
     aClass.name = name
+    local tempType
     aClass.field =
     {
-        number =
-        {
-            __newindex = function(self, key, value)
-                if checkType then
-                    if type(value) ~= "number" then
-                        error("field value is no number", key, value, 1)
-                    end
-                end
-                rawset(self, key, value)
-            end
-        },
-        string = {},
-        table = {},
-        userdata = {},
-        ["function"] = {},
+        -- number =
+        -- {
+        --     __newindex = function(self, key, value)
+        --         if checkType then
+        --             if type(value) ~= "number" then
+        --                 error("field value is no number", key, value, 1)
+        --             end
+        --         end
+        --         rawset(self, key, value)
+        --     end
+        -- },
+        -- string = {},
+        -- table = {},
+        -- userdata = {},
+        -- ["function"] = {},
 
-        __call = function(self, param1)
-            return self[param1]
+        __call = function(self, type)
+            tempType = type
+            return self
+        end,
+
+        __newindex = function(self, key, value)
+            if rawget(self, key) then
+                error(string.format("Class field already exist, class: %s, field name: %s", name, key), 1)
+            end
+
+            local type = type(value)
+            if checkType and type ~= tempType then
+                error(string.format("Class field type mismatch, class: %s, field: %s, need: %s, assignment: %s", name, key, tempType, type), 1)
+            end
+
+            local metadata = {}
+            metadata.type = type
+            metadata.defaultValue = value
+            rawset(self, key, metadata)
         end,
     }
-    setmetatable(aClass.field.number, aClass.field.number)
+    -- setmetatable(aClass.field.number, aClass.field.number)
     setmetatable(aClass.field, aClass.field)
 
     aClass.static = {}  -- static can be inherited
