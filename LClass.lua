@@ -5,12 +5,16 @@ local aClassMeta =
 {
     __call = function(aClass)
         local aInstance = {}
+        aInstance.instanceField = {}
         local instanceMeta =
         {
             __index = function(instance, key)
                 local fieldMeta = aClass.field[key]
+                if not fieldMeta then
+                    error(string.format("Instance field not found when access, field: %s", key), 1)
+                end
 
-                return rawget(instance, key) or fieldMeta.defaultValue
+                return instance.instanceField[key] or fieldMeta.defaultValue
             end,
 
             __newindex = function(instance, key, value)
@@ -20,10 +24,10 @@ local aClassMeta =
                 end
 
                 if checkType and fieldMeta.type ~= type(value) then
-                    error(string.format("Instance field type mismatch, need: %s, assignment: %,", fieldMeta.type, type(value)), 1)
+                    error(string.format("Instance field type mismatch, need: %s, assignment: %s,", fieldMeta.type, type(value)), 1)
                 end
 
-                rawset(instance, key, value)
+                instance.instanceField[key] = value
             end,
         }
         setmetatable(aInstance, instanceMeta)
@@ -63,7 +67,7 @@ end
 
 local function _createClass(name, super)
     local aClass = {}
-    aClass.__index = aClass
+    -- aClass.__index = aClass
     aClass.__tostring = function(self)
         local temp = aClass.__tostring
         aClass.__tostring = nil
