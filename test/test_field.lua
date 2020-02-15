@@ -22,5 +22,9 @@ local O3 = C3()
 
 assert(O1.m_number1 == 1)
 print(O1.m_number1)
+O1.m_number1 = 2
+print("O1.m_number1:", O1.m_number1)
+-- O1.m_number1 = "a"
+-- print("O1.m_number1:", O1.m_number1)
 print(O1.m_number2)
--- print(O2.m_number1)
+print(O2.m_number1)

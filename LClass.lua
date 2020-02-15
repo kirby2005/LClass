@@ -9,9 +9,6 @@ local aClassMeta =
         {
             __index = function(instance, key)
                 local fieldMeta = aClass.field[key]
-                if not fieldMeta then
-                    error(string.format("Instance field not found when access, field: %s", key), 1)
-                end
 
                 return rawget(instance, key) or fieldMeta.defaultValue
             end,
@@ -76,28 +73,22 @@ local function _createClass(name, super)
     end
 
     aClass.name = name
+    aClass.field = {}
     local tempType
-    aClass.field =
+    local fieldMeta =
     {
-        -- number =
-        -- {
-        --     __newindex = function(self, key, value)
-        --         if checkType then
-        --             if type(value) ~= "number" then
-        --                 error("field value is no number", key, value, 1)
-        --             end
-        --         end
-        --         rawset(self, key, value)
-        --     end
-        -- },
-        -- string = {},
-        -- table = {},
-        -- userdata = {},
-        -- ["function"] = {},
-
         __call = function(self, type)
             tempType = type
             return self
+        end,
+
+        __index = function(self, key)
+            local value = rawget(self, key)
+            if not value and super then
+                value = super.field[key]
+            end
+
+            return value  -- may be nil.
         end,
 
         __newindex = function(self, key, value)
@@ -116,8 +107,7 @@ local function _createClass(name, super)
             rawset(self, key, metadata)
         end,
     }
-    -- setmetatable(aClass.field.number, aClass.field.number)
-    setmetatable(aClass.field, aClass.field)
+    setmetatable(aClass.field, fieldMeta)
 
     aClass.static = {}  -- static can be inherited
     aClass.static.__index = aClass.static
