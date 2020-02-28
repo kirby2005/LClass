@@ -1,6 +1,21 @@
 local LClass = {}
 local checkType = true
 
+local function deepCopy(value)
+    local ret
+    if type(value) == "table" then
+        ret = {}
+        for k, v in pairs(value) do
+            ret[k] = deepCopy(v)
+        end
+
+        setmetatable(ret, getmetatable(tbl))
+    else
+        ret = value
+    end
+    return ret
+end
+
 local aClassMeta =
 {
     __call = function(aClass)
@@ -12,6 +27,11 @@ local aClassMeta =
                 local fieldMeta = aClass.field[key]
                 if not fieldMeta then
                     error(string.format("Instance field not found when access, field: %s", key), 1)
+                end
+                -- table is reference type, change element of a table field will change the template table field in class, so, deep copy a new table to resolve this problem.
+                if fieldMeta.type == "table" and not instance.instanceField[key] then
+                    local tableField = deepCopy(fieldMeta.defaultValue)
+                    instance.instanceField[key] = tableField
                 end
 
                 return instance.instanceField[key] or fieldMeta.defaultValue
@@ -82,7 +102,7 @@ local function _createClass(name, super)
     local fieldMeta =
     {
         __call = function(self, type)
-            tempType = type
+            tempType = type  -- for type check
             return self
         end,
 
