@@ -1,4 +1,7 @@
 local LClass = dofile "../LClass.lua"
+local FC1 = LClass("FC1")
+local FC2 = LClass("FC2")
+FC1.field("number").m_a1 = 1000
 
 local C1 = LClass("C1")
 C1.field("number").m_number1 = 1
@@ -10,6 +13,7 @@ C1.field("table").m_table2 = {key2 = "key2"}
 -- C1.field("userdata").m_userdata1 = nil
 -- C1.field("userdata").m_userdata2 = nil
 C1.field("function").m_function1 = function(a) print(a) end
+C1.field(FC1).m_fc1 = FC1()
 -- C1.field("function").m_function2 = nil
 
 local C2 = LClass("C2", C1)

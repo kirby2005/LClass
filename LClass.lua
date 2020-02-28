@@ -1,5 +1,9 @@
 local LClass = {}
 local checkType = true
+local classMark = {}
+local function isClass(class)
+    return type(class) == "table" and class.mark == classMark
+end
 
 local function deepCopy(value)
     local ret
@@ -50,6 +54,18 @@ local aClassMeta =
                 instance.instanceField[key] = value
             end,
         }
+        instanceMeta.__tostring = function(self)
+            local temp = instanceMeta.__tostring
+            instanceMeta.__tostring = nil
+            local addr = tostring(self)
+            instanceMeta.__tostring = temp
+            return "Instance of class " .. aClass.name .. " " .. addr
+        end
+
+        aInstance.is = function(self, class)
+            return isClass(class) and aClass.name == class.name
+        end
+
         setmetatable(aInstance, instanceMeta)
 
         return aInstance
@@ -87,17 +103,11 @@ end
 
 local function _createClass(name, super)
     local aClass = {}
-    -- aClass.__index = aClass
-    aClass.__tostring = function(self)
-        local temp = aClass.__tostring
-        aClass.__tostring = nil
-        local addr = tostring(self)
-        aClass.__tostring = temp
-        return "Instance of class " .. name .. " " .. addr
-    end
 
     aClass.name = name
     aClass.field = {}
+    aClass.mark = classMark
+
     local tempType
     local fieldMeta =
     {
@@ -120,13 +130,18 @@ local function _createClass(name, super)
                 error(string.format("Class field already exist, class: %s, field name: %s", name, key), 1)
             end
 
-            local type = type(value)
-            if checkType and type ~= tempType then
-                error(string.format("Class field type mismatch, class: %s, field: %s, need: %s, assignment: %s", name, key, tempType, type), 1)
+            local valueType = type(value)
+            if checkType and valueType ~= tempType then
+                if valueType == "table" and value.is and value:is(tempType) then
+                else
+                    local needTypeDesc = isClass(tempType) and "Instance of class " .. tempType.name or type(tempType)
+                    local assignmentTypeDesc = tostring(value)
+                    error(string.format("Class field type mismatch, class: %s, field: %s, need: %s, assignment: %s", name, key, needTypeDesc, assignmentTypeDesc), 1)
+                end
             end
 
             local metadata = {}
-            metadata.type = type
+            metadata.type = valueType
             metadata.defaultValue = value
             rawset(self, key, metadata)
         end,
