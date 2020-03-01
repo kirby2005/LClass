@@ -3,6 +3,7 @@ local test_files =
     -- "test_misc",
     "test_field",
     "test_static",
+    "test_method",
 }
 
 for i = 1, #test_files do

@@ -1,4 +1,5 @@
 local LClass = {}
+local ClassSet = {}
 local checkType = true
 local classMark = {}
 local function isClass(class)
@@ -28,17 +29,36 @@ local aClassMeta =
         local instanceMeta =
         {
             __index = function(instance, key)
-                local fieldMeta = aClass.field[key]
-                if not fieldMeta then
-                    error(string.format("Instance field not found when access, field: %s", key), 1)
-                end
-                -- table is reference type, change element of a table field will change the template table field in class, so, deep copy a new table to resolve this problem.
-                if fieldMeta.type == "table" and not instance.instanceField[key] then
-                    local tableField = deepCopy(fieldMeta.defaultValue)
-                    instance.instanceField[key] = tableField
+                local memberType = aClass.memberInfo[key]
+                if not memberType then
+                    local super = aClass.super
+                    while(super) do
+                        memberType = super.memberInfo[key]
+                        if memberType then
+                            break
+                        else
+                            super = super.super
+                        end
+                    end
                 end
 
-                return instance.instanceField[key] or fieldMeta.defaultValue
+                if not memberType then
+                    error(string.format("Member info not found in class %s, member name: %s", aClass.name, key), 1)
+                elseif memberType == "field" then
+                    local fieldMeta = aClass.field[key]
+                    if not fieldMeta then
+                        error(string.format("Instance field not found when access, field: %s", key), 1)
+                    end
+                    -- table is reference type, change element of a table field will change the template table field in class, so, deep copy a new table to resolve this problem.
+                    if fieldMeta.type == "table" and not instance.instanceField[key] then
+                        local tableField = deepCopy(fieldMeta.defaultValue)
+                        instance.instanceField[key] = tableField
+                    end
+
+                    return instance.instanceField[key] or fieldMeta.defaultValue
+                elseif memberType == "method" then
+                    return aClass.method[key]
+                end
             end,
 
             __newindex = function(instance, key, value)
@@ -102,10 +122,18 @@ end
 
 
 local function _createClass(name, super)
+    if not ClassSet[name] then
+        ClassSet[name] = true
+    else
+        error(string.format("Class already exists, class name: %s", name), 1)
+    end
+
     local aClass = {}
 
     aClass.name = name
+    aClass.memberInfo = {}
     aClass.field = {}
+    aClass.method = {}
     aClass.mark = classMark
 
     local tempType
@@ -126,6 +154,9 @@ local function _createClass(name, super)
         end,
 
         __newindex = function(self, key, value)
+            if aClass.memberInfo[key] then
+                error(string.format("Member already exists, name: %s", key), 1)
+            end
             if rawget(self, key) then
                 error(string.format("Class field already exist, class: %s, field name: %s", name, key), 1)
             end
@@ -144,9 +175,52 @@ local function _createClass(name, super)
             metadata.type = valueType
             metadata.defaultValue = value
             rawset(self, key, metadata)
+            aClass.memberInfo[key] = "field"
         end,
     }
     setmetatable(aClass.field, fieldMeta)
+
+    local tempTypeArray = {}
+    local methodMeta =
+    {
+        __call = function(self, ...)
+            local typeCount = select("#", ...)
+            for i = 1, typeCount do
+                tempTypeArray[i] = select(i, ...)
+            end
+
+            return aClass.method
+        end,
+
+        __index = function(self, key)
+            local method = rawget(aClass.method, key)
+            if not method then
+                local super = aClass.super
+                while super do
+                    method = super.method[key]
+                    if method then
+                        break
+                    end
+                    super = super.super
+                end
+            end
+            return method
+        end,
+
+        __newindex = function(self, key, value)
+            if aClass.memberInfo[key] then
+                error(string.format("Member already exists, name: %s", key), 1)
+            end
+            if not type(value) == "function" then
+                error(string.format("Method value is not a function, name: %s", name), 1)
+            end
+
+            rawset(self, key, value)
+
+            aClass.memberInfo[key] = "method"
+        end,
+    }
+    setmetatable(aClass.method, methodMeta)
 
     aClass.static = {}  -- static can be inherited
     aClass.static.__index = aClass.static
