@@ -21,6 +21,7 @@ local function deepCopy(value)
     return ret
 end
 
+local tempType
 local aClassMeta =
 {
     __call = function(aClass)
@@ -91,23 +92,39 @@ local aClassMeta =
         return aInstance
     end,
 
-    __newindex = function(aClass, key, value)
-        -- TO DO: key check(field, static, etc.)
-        rawset(aClass, key, value)
-    end,
+    -- __newindex = function(aClass, key, value)
+    --     -- TO DO: key check(field, static, etc.)
+    --     rawset(aClass, key, value)
+    -- end,
+
+    -- __index = function(aClass, key)
+    --     if rawget(aClass, key) then
+    --         return rawget(aClass, key)
+    --     else
+    --         local super = rawget(aClass, "super")
+    --         while super do
+    --             if rawget(super, key) then
+    --                 return rawget(super, key)
+    --             end
+    --             super = super.super
+    --         end
+    --     end
+    -- end,
 
     __index = function(aClass, key)
-        if rawget(aClass, key) then
-            return rawget(aClass, key)
+        print("xxxxxxxxxxxxxx", key)
+        if key == "field" then
+            tempType = "field"
+        elseif key == "method" then
+            tempType = "method"
+        elseif key == "virtual" then
+            tempType = "virtual"
+        elseif key == "override" then
+            tempType = "override"
         else
-            local super = rawget(aClass, "super")
-            while super do
-                if rawget(super, key) then
-                    return rawget(super, key)
-                end
-                super = super.super
-            end
+            return rawget(aClass, key)
         end
+        return aClass.membersInfo
     end,
 }
 
@@ -120,6 +137,32 @@ aClassMeta.__tostring = function(aClass)
     return "CLASS: " .. aClass.name .. " " .. addr
 end
 
+local membersMeta =
+{
+    __call = function(self, ...)
+        return self
+    end,
+
+    __newindex = function(self, key, value)
+        if self.members[key] then
+            error(string.format("Class member already exists. name: %s", key), 1)
+        end
+
+        if tempType == "field" then
+            self.members[key] = value
+        elseif tempType == "method" then
+            if type(value) ~= "function" then
+                error(string.format("Class member not match, need method, got: %s", type(value)), 1)
+            end
+            local memberInfo = {}
+            memberInfo.__call = function(self, ...)
+                return value(...)
+            end
+
+            self.members[key] = memberInfo
+        end
+    end,
+}
 
 local function _createClass(name, super)
     if not ClassSet[name] then
@@ -132,8 +175,11 @@ local function _createClass(name, super)
 
     aClass.name = name
     aClass.memberInfo = {}
-    aClass.field = {}
-    aClass.method = {}
+    aClass.membersInfo = {members = {}}
+    setmetatable(aClass.membersInfo, membersMeta)
+
+    -- aClass.field = {}
+    -- aClass.method = {}
     aClass.mark = classMark
 
     local tempType
@@ -178,7 +224,7 @@ local function _createClass(name, super)
             aClass.memberInfo[key] = "field"
         end,
     }
-    setmetatable(aClass.field, fieldMeta)
+    -- setmetatable(aClass.field, fieldMeta)
 
     local tempTypeArray = {}
     local methodMeta =
@@ -220,7 +266,7 @@ local function _createClass(name, super)
             aClass.memberInfo[key] = "method"
         end,
     }
-    setmetatable(aClass.method, methodMeta)
+    -- setmetatable(aClass.method, methodMeta)
 
     aClass.static = {}  -- static can be inherited
     aClass.static.__index = aClass.static
